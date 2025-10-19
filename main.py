@@ -54,13 +54,18 @@ SCOPES = ["https://www.googleapis.com/auth/drive"]
 SERVICE_ACCOUNT_FILE = "service_account.json"  
 
 def get_service_account_drive():
-    creds = service_account.Credentials.from_service_account_info(
-        json.loads(os.getenv("SERVICE_ACCOUNT_JSON"))
-    )
+  creds_json = os.getenv("SERVICE_ACCOUNT_JSON")
+  if not creds_json:
+      raise Exception("❌ SERVICE_ACCOUNT_JSON not found in environment variables!")
 
-    drive = build("drive", "v3", credentials=creds)
-    print("✅ Connected to Google Drive via Service Account")
-    return drive
+  creds_info = json.loads(creds_json)
+  creds = service_account.Credentials.from_service_account_info(
+      creds_info,
+      scopes=["https://www.googleapis.com/auth/drive"]
+  )
+
+  print("✅ Connected to Google Drive via Service Account")
+  return build("drive", "v3", credentials=creds)
 
 drive = get_service_account_drive()
 
@@ -134,8 +139,8 @@ def parse_and_save(data, name):
     })
   df = pd.DataFrame(rows)
   os.makedirs("outputs", exist_ok=True)
-  out_path = f"outputs/{os.path.splitext(name)[0]}_parsed.xlsx"
-  df.to_excel(out_path, index=False)
+  out_path = "outputs/All_Receipts_Combined.xlsx"
+  df_combined.to_excel(out_path, index=False)
   return out_path
 
 
@@ -184,8 +189,7 @@ def main():
       parsed = analyze_receipt(content)
       out_path = parse_and_save(parsed, f["name"])
       if out_path:
-          upload_to_drive(out_path, FOLDER_ID)
-          print(f"✅ Uploaded parsed file: {out_path}")
+          print(f"✅ Parsed and saved locally: {out_path}")
       else:
           print(f"⚠️ No data found for {f['name']}")
 
