@@ -1,0 +1,6 @@
+{
+  "AZURE_ENDPOINT": "https://receiptinvoiceaid.cognitiveservices.azure.com/",
+  "AZURE_KEY": "",
+  "MODEL": "prebuilt-receipt",
+  "DRIVE_FOLDER_ID": "1gBOXAU9b1zSt06c-1YPQcmPiu02zTdXZ"
+}
