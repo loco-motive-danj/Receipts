@@ -1,7 +1,8 @@
-from flask import Flask, render_template_string, send_file
+from flask import Flask, render_template_string, send_file, redirect, url_for
 import pandas as pd
 import os
 from glob import glob
+import subprocess
 
 app = Flask(__name__)
 
@@ -9,14 +10,34 @@ app = Flask(__name__)
 def home():
     return render_template_string("""
         <h2>📊 Receipt Parser Dashboard</h2>
-        <p>Receipts are automatically parsed in the background.</p>
+        <p>Receipts are automatically parsed in the background <em>or</em> you can trigger parsing manually below.</p>
+        <form action="/run-parser" method="post">
+            <button type="submit">🔁 Parse New Receipts</button>
+        </form>
+        <br>
         <form action="/merge" method="get">
             <button type="submit">📥 Download Combined Excel</button>
         </form>
     """)
 
+@app.route('/run-parser', methods=['POST'])
+def run_parser():
+    """Run the main parser script on demand."""
+    try:
+        # run your existing main.py which handles Azure + Drive
+        subprocess.run(["python", "main.py"], check=True)
+        message = "✅ Parsing completed successfully!"
+    except subprocess.CalledProcessError as e:
+        message = f"⚠️ Error running parser: {e}"
+
+    return render_template_string(f"""
+        <h2>{message}</h2>
+        <a href="{url_for('home')}">⬅️ Back to Dashboard</a>
+    """)
+
 @app.route('/merge')
 def merge():
+    """Combine all parsed Excel files into one."""
     files = glob("outputs/*.xlsx")
     if not files:
         return "No parsed files available yet.", 404
@@ -34,4 +55,5 @@ def merge():
     return send_file(out_path, as_attachment=True)
 
 if __name__ == '__main__':
+    # host 0.0.0.0 ensures it works on Render or Replit
     app.run(host='0.0.0.0', port=10000)
