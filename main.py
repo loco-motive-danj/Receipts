@@ -228,8 +228,15 @@ def download_results():
 def run_flask():
     app.run(host='0.0.0.0', port=8080)
 
+if os.getenv("GITHUB_ACTIONS") == "true":
+os.environ["FLASK_RUN_FROM_CLI"] = "false"
 
 if __name__ == "__main__":
-    # Run the Flask app alongside your existing pipeline
-    threading.Thread(target=run_flask).start()
-    main()
+    # Only run Flask when not in GitHub Actions
+    if not os.getenv("GITHUB_ACTIONS"):
+        app.run(host="0.0.0.0", port=8080)
+    else:
+        print("✅ Skipping Flask server in GitHub Actions.")
+        main()
+        print("🏁 Parser finished successfully, exiting now.")
+        exit(0)
