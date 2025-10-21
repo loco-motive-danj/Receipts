@@ -17,21 +17,18 @@ from google.oauth2 import service_account
 from googleapiclient.discovery import build
 
 # --- load token from Replit secret or local file ---
-print("🔐 Loading token from Replit environment...")
 
-token_json = os.getenv("GOOGLE_TOKEN")  # Replit secret
-if not token_json and os.path.exists("token.json"):
-    with open("token.json") as f:
-        token_json = f.read()
 
-if not token_json:
-    raise Exception(
-        "❌ No Google token found. Add GOOGLE_TOKEN in Replit Secrets!")
+print("🔐 Loading credentials from environment...")
 
-creds = Credentials.from_authorized_user_info(json.loads(token_json))
+# For GitHub Actions, use the SERVICE_ACCOUNT_JSON secret
+service_json = os.getenv("SERVICE_ACCOUNT_JSON")
+if not service_json:
+    raise Exception("❌ No Google credentials found. Add SERVICE_ACCOUNT_JSON in GitHub Secrets!")
 
-drive = build("drive", "v3", credentials=creds)
-print("✅ Google Drive connected successfully!")
+creds_data = json.loads(service_json)
+creds = service_account.Credentials.from_service_account_info(creds_data, scopes=SCOPES)
+print("✅ Connected to Google Drive via Service Account")
 
 # ---- Load config ----
 with open("config.json") as f:
