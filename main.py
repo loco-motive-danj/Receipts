@@ -16,18 +16,22 @@ from google.auth.transport.requests import Request
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 
-# --- load token from Replit secret or local file ---
+SCOPES = ["https://www.googleapis.com/auth/drive"]
 
+# --- load token from Replit secret or local file ---
 
 print("🔐 Loading credentials from environment...")
 
 # For GitHub Actions, use the SERVICE_ACCOUNT_JSON secret
 service_json = os.getenv("SERVICE_ACCOUNT_JSON")
 if not service_json:
-    raise Exception("❌ No Google credentials found. Add SERVICE_ACCOUNT_JSON in GitHub Secrets!")
+    raise Exception(
+        "❌ No Google credentials found. Add SERVICE_ACCOUNT_JSON in GitHub Secrets!"
+    )
 
 creds_data = json.loads(service_json)
-creds = service_account.Credentials.from_service_account_info(creds_data, scopes=SCOPES)
+creds = service_account.Credentials.from_service_account_info(creds_data,
+                                                              scopes=SCOPES)
 print("✅ Connected to Google Drive via Service Account")
 
 # ---- Load config ----
