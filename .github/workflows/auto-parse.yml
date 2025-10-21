@@ -26,11 +26,13 @@ jobs:
       run: |
         pip install -r requirements.txt
 
+    - name: Write service account JSON to file
+      run: echo "${{ secrets.SERVICE_ACCOUNT_JSON }}" > service_account.json
+
     - name: Run receipt parser
       env:
         AZURE_KEY: ${{ secrets.AZURE_KEY }}
         AZURE_ENDPOINT: ${{ secrets.AZURE_ENDPOINT }}
-        SERVICE_ACCOUNT_JSON: ${{ secrets.SERVICE_ACCOUNT_JSON }}
       run: |
         echo "DEBUG: Running latest main.py"
         python main.py
@@ -42,4 +44,5 @@ jobs:
         git add outputs/*.xlsx || true
         git commit -m "Auto-update parsed receipts" || echo "No changes"
         git push || true
+
 
