@@ -28,14 +28,17 @@ print("🔐 Loading credentials from environment...")
 
 creds_data = None
 encoded = os.getenv("SERVICE_ACCOUNT_KEY_B64")
-if encoded:
-    print("🔐 Decoding credentials from base64 environment variable.")
+if not encoded:
+    print("❌ SERVICE_ACCOUNT_KEY_B64 is missing or empty!")
+    exit(1)
+
+try:
     decoded = base64.b64decode(encoded).decode("utf-8")
+    print("🔍 Decoded JSON preview:", decoded[:100])  # Add this line
     creds_data = json.loads(decoded)
-else:
-    print("📁 Loading credentials from service_account.json file.")
-    with open("service_account.json") as f:
-        creds_data = json.load(f)
+except Exception as e:
+    print("❌ Failed to decode or parse credentials:", e)
+    exit(1)
 
 creds = service_account.Credentials.from_service_account_info(creds_data,
                                                               scopes=SCOPES)
