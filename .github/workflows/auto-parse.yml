@@ -33,6 +33,7 @@ jobs:
       env:
         AZURE_KEY: ${{ secrets.AZURE_KEY }}
         AZURE_ENDPOINT: ${{ secrets.AZURE_ENDPOINT }}
+        SERVICE_ACCOUNT_KEY_B64: ${{ secrets.SERVICE_ACCOUNT_KEY_B64 }}
       run: |
         echo "DEBUG: Running latest main.py"
         python main.py
