@@ -17,14 +17,20 @@ from google.oauth2 import service_account
 from googleapiclient.discovery import build
 
 SCOPES = ["https://www.googleapis.com/auth/drive"]
+creds_data = None
 
 # --- load token from Replit secret or local file ---
 
 print("🔐 Loading credentials from environment...")
 
 # For GitHub Actions, use the SERVICE_ACCOUNT_JSON secret
-with open("service_account.json") as f:
-    creds_data = json.load(f)
+if os.getenv("SERVICE_ACCOUNT_KEY"):
+    creds_json = os.getenv("SERVICE_ACCOUNT_KEY")
+    if creds_json:
+        creds_data = json.loads(creds_json)
+    else:
+        with open("service_account.json") as f:
+            creds_data = json.load(f)
 
 creds = service_account.Credentials.from_service_account_info(creds_data,
                                                               scopes=SCOPES)
@@ -42,10 +48,6 @@ FOLDER_ID = "1gBOXAU9b1zSt06c-1YPQcmPiu02zTdXZ"
 
 SCOPES = ["https://www.googleapis.com/auth/drive"]
 
-from google.oauth2 import service_account
-from googleapiclient.discovery import build
-
-SCOPES = ["https://www.googleapis.com/auth/drive"]
 SERVICE_ACCOUNT_FILE = "service_account.json"
 
 
