@@ -29,8 +29,11 @@ on:
         run: |
           printf '%s' "${{ secrets.SERVICE_ACCOUNT_JSON }}" > service_account.json
 
-      - name: Derive SERVICE_ACCOUNT_KEY_B64 from JSON secret
-        run: echo "SERVICE_ACCOUNT_KEY_B64=$(printf '%s' '${{ secrets.SERVICE_ACCOUNT_JSON }}' | base64 -w0)" >> $GITHUB_ENV
+      - name: Derive SERVICE_ACCOUNT_KEY_B64 from JSON
+        run: |
+          echo "${{ secrets.SERVICE_ACCOUNT_JSON }}" | base64 -w0 > tmp_b64.txt
+          echo "SERVICE_ACCOUNT_KEY_B64=$(cat tmp_b64.txt)" >> $GITHUB_ENV
+          rm tmp_b64.txt
 
       - name: Run receipt parser
         env:
