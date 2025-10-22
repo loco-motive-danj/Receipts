@@ -6,6 +6,7 @@ import time
 import requests
 import pandas as pd
 import glob
+import base64
 from flask import Flask, send_file
 import threading
 from googleapiclient.discovery import build
@@ -25,24 +26,16 @@ print("🔐 Loading credentials from environment...")
 
 # For GitHub Actions, use the SERVICE_ACCOUNT_JSON secret
 
-creds_data = None  # Initialize to avoid Pyright warning
-
-try:
-    creds_json = os.getenv("SERVICE_ACCOUNT_KEY")
-    if creds_json:
-        print("🔐 Loaded credentials from environment variable.")
-        creds_data = json.loads(creds_json)
-    else:
-        print("📁 Loaded credentials from service_account.json file.")
-        with open("service_account.json") as f:
-            creds_data = json.load(f)
-except Exception as e:
-    print("❌ Failed to load credentials:", e)
-    exit(1)
-
-if not creds_data:
-    print("❌ Credentials data is empty or invalid.")
-    exit(1)
+creds_data = None
+encoded = os.getenv("SERVICE_ACCOUNT_KEY_B64")
+if encoded:
+    print("🔐 Decoding credentials from base64 environment variable.")
+    decoded = base64.b64decode(encoded).decode("utf-8")
+    creds_data = json.loads(decoded)
+else:
+    print("📁 Loading credentials from service_account.json file.")
+    with open("service_account.json") as f:
+        creds_data = json.load(f)
 
 creds = service_account.Credentials.from_service_account_info(creds_data,
                                                               scopes=SCOPES)
