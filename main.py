@@ -23,16 +23,11 @@ SCOPES = ["https://www.googleapis.com/auth/drive"]
 print("🔐 Loading credentials from environment...")
 
 # For GitHub Actions, use the SERVICE_ACCOUNT_JSON secret
-service_json = os.getenv("SERVICE_ACCOUNT_JSON")
-if not service_json:
-    raise Exception(
-        "❌ No Google credentials found. Add SERVICE_ACCOUNT_JSON in GitHub Secrets!"
-    )
+with open("service_account.json") as f:
+    creds_data = json.load(f)
 
-creds_data = json.loads(service_json)
 creds = service_account.Credentials.from_service_account_info(creds_data,
                                                               scopes=SCOPES)
-print("✅ Connected to Google Drive via Service Account")
 
 # ---- Load config ----
 with open("config.json") as f:
@@ -55,12 +50,12 @@ SERVICE_ACCOUNT_FILE = "service_account.json"
 
 
 def get_service_account_drive():
-    creds_json = os.getenv("SERVICE_ACCOUNT_JSON")
-    if not creds_json:
-        raise Exception(
-            "❌ SERVICE_ACCOUNT_JSON not found in environment variables!")
+    try:
+        with open("service_account.json") as f:
+            creds_info = json.load(f)
+    except Exception:
+        raise Exception("❌ service_account.json file not found or unreadable!")
 
-    creds_info = json.loads(creds_json)
     creds = service_account.Credentials.from_service_account_info(
         creds_info, scopes=["https://www.googleapis.com/auth/drive"])
 
@@ -228,11 +223,12 @@ def download_results():
 def run_flask():
     app.run(host='0.0.0.0', port=8080)
 
-if os.getenv("GITHUB_ACTIONS") == "true":
-os.environ["FLASK_RUN_FROM_CLI"] = "false"
+    if os.getenv("GITHUB_ACTIONS") == "true":
+        print("GITHUB_ACTIONS =", os.getenv("GITHUB_ACTIONS"))
+        os.environ["FLASK_RUN_FROM_CLI"] = "false"
+
 
 if __name__ == "__main__":
-    # Only run Flask when not in GitHub Actions
     if not os.getenv("GITHUB_ACTIONS"):
         app.run(host="0.0.0.0", port=8080)
     else:
