@@ -5,131 +5,10 @@ on:
     - cron: "0 * * * *"   # every hour
   workflow_dispatch:       # manual trigger
 
-
-  Settings
-  Debug github actions secrets
-  cursor/debug-github-actions-secrets-0488
-   in 
-  loco-motive-danj/Receipts
-   by 
-  gpt-5
-  Open in Cursor
-
-
-
-  Summary
-  Identified why GitHub Actions secrets were not working.
-
-  main.py expected SERVICE_ACCOUNT_KEY_B64 environment variable, causing an exit if missing, despite SERVICE_ACCOUNT_JSON being written to file.
-  The AZURE_ENDPOINT secret was ignored due to a hardcoded value in main.py.
-  Recommended updating main.py to use environment variables or fallback to file, and using printf for multi-line secrets in .github/workflows/auto-parse.yml.
-  Advised removing a sensitive debug print in main.py.
-  can you find out why my secrets in github action are not working> 
-  Thought for 13s
-  I'll scan your repository's GitHub Actions workflows to see how secrets are referenced and under what triggers they run, then identify common pitfalls (fork PRs, reusable workflows without secrets: inherit, environment scoping, typos). Now I'll locate and read all workflow files and search for secrets usages in parallel.
-
-  Searched 4 times and listed 14 items in current directory and thought for 1s
-  I'll open the workflow file to inspect how secrets are referenced, triggers, and environment usage.
-
-  Read auto-parse.yml and thought for 16s
-  I'll search the code for how these secrets are consumed to check for naming mismatches or file expectations, then open the relevant files.
-
-  Searched and read main.py and thought for 56s
-  I found the workflow and the code that consume your secrets. Here are the exact places:
-
-      - name: Write service account JSON to file
-        run: echo "${{ secrets.SERVICE_ACCOUNT_JSON }}" > service_account.json
-
-      - name: Run receipt parser
-        env:
-          AZURE_KEY: ${{ secrets.AZURE_KEY }}
-          AZURE_ENDPOINT: ${{ secrets.AZURE_ENDPOINT }}
-          SERVICE_ACCOUNT_KEY_B64: ${{ secrets.SERVICE_ACCOUNT_KEY_B64 }}
-          echo "DEBUG: Running latest main.py"
-          python main.py
-  creds_data = None
-  encoded = os.getenv("SERVICE_ACCOUNT_KEY_B64")
-  if not encoded:
-      print("❌ SERVICE_ACCOUNT_KEY_B64 is missing or empty!")
-      exit(1)
-
-  try:
-      decoded = base64.b64decode(encoded).decode("utf-8")
-      print("🔍 Decoded JSON preview:", decoded[:100])  # Add this line
-      creds_data = json.loads(decoded)
-  except Exception as e:
-      print("❌ Failed to decode or parse credentials:", e)
-      exit(1)
-  def get_service_account_drive():
-      try:
-          with open("service_account.json") as f:
-              creds_info = json.load(f)
-      except Exception:
-          raise Exception("❌ service_account.json file not found or unreadable!")
-
-      creds = service_account.Credentials.from_service_account_info(
-          creds_info, scopes=["https://www.googleapis.com/auth/drive"])
-  AZURE_ENDPOINT = "https://receiptinvoiceaid.cognitiveservices.azure.com/"
-  AZURE_KEY = os.getenv("AZURE_KEY")
-  MODEL = "prebuilt-receipt"
-  What’s wrong and why secrets appear “not working”
-
-  The code hard-requires SERVICE_ACCOUNT_KEY_B64. If that repository secret isn’t set (or is empty), your job will print “SERVICE_ACCOUNT_KEY_B64 is missing or empty!” and exit. Writing service_account.json from SERVICE_ACCOUNT_JSON won’t help because the script exits before falling back to a file (there is no fallback).
-  You set AZURE_ENDPOINT via a secret in the workflow, but the code uses a hardcoded endpoint constant and ignores the env var; so that secret has no effect.
-  Using echo "${{ secrets.SERVICE_ACCOUNT_JSON }}" > service_account.json for a multi-line JSON can sometimes introduce formatting issues; prefer printf (see below).
-  Minor security issue: the code prints the first 100 chars of your decoded service account JSON; this may leak sensitive data in logs.
-  Two clean fixes (choose one)
-
-  Option A: Make the code robust (fallback to the file already written by the workflow)
-
-  Change the top of main.py to use env if present, else read the file:
-  encoded = os.getenv("SERVICE_ACCOUNT_KEY_B64")
-  if encoded:
-      creds_data = json.loads(base64.b64decode(encoded).decode("utf-8"))
-  else:
-      with open("service_account.json") as f:
-          creds_data = json.load(f)
-  Also read endpoint from env if provided:
-  AZURE_ENDPOINT = os.getenv("AZURE_ENDPOINT", "https://receiptinvoiceaid.cognitiveservices.azure.com/")
-  Remove the “Decoded JSON preview” print.
-  Option B: Keep the code as-is and provide the expected base64 secret in the workflow
-
-  Ensure the repository secret SERVICE_ACCOUNT_KEY_B64 is actually set. If you only have SERVICE_ACCOUNT_JSON, derive and export the base64 at runtime:
-  - name: Export base64 service account to env
-    run: echo "SERVICE_ACCOUNT_KEY_B64=$(printf '%s' '${{ secrets.SERVICE_ACCOUNT_JSON }}' | base64 -w0)" >> $GITHUB_ENV
-  Then keep your step that runs python main.py (it will see SERVICE_ACCOUNT_KEY_B64).
-  Hardening the workflow file writing
-
-  Use printf instead of echo for multiline secrets:
-  - name: Write service account JSON to file
-    run: |
-      printf '%s' "${{ secrets.SERVICE_ACCOUNT_JSON }}" > service_account.json
-  Quick checklist to unblock you now
-
-  Verify repository secrets exist and are non-empty: AZURE_KEY, SERVICE_ACCOUNT_KEY_B64 (or implement Option A/derivation step).
-  If you rely on environment-scoped secrets, add environment: <name> under the job.
-  Update main.py to use os.getenv("AZURE_ENDPOINT", default) so the AZURE_ENDPOINT secret is honored.
-  Remove the decoded JSON preview print to avoid leaking secrets.
-  Status: I located your workflow and code references, identified the mismatch (code requires SERVICE_ACCOUNT_KEY_B64 but the workflow may only provide SERVICE_ACCOUNT_JSON), the unused AZURE_ENDPOINT secret, and a safer way to write multiline secrets. Let me know if you want me to implement Option A (code fallback + endpoint env) in this branch.
-
-  where does the AZURE_ENDPOINT from env line go? And should it be declared then as an environment variable in github>
-  Thought for 12s
-  Put it exactly where the endpoint is currently hardcoded in main.py (next to AZURE_KEY). Replace that line with:
-  AZURE_ENDPOINT = os.getenv("AZURE_ENDPOINT", "https://receiptinvoiceaid.cognitiveservices.azure.com/")
-  Yes—declare it for the workflow so the script can read it. You’re already setting it on the “Run receipt parser” step:
-  - name: Run receipt parser
-    env:
-      AZURE_KEY: ${{ secrets.AZURE_KEY }}
-      AZURE_ENDPOINT: ${{ secrets.AZURE_ENDPOINT }}
-      SERVICE_ACCOUNT_KEY_B64: ${{ secrets.SERVICE_ACCOUNT_KEY_B64 }}
-    run: python main.py
-  That’s sufficient once the code change above is made. Alternatively, set it at the job level under jobs.run-parser.env (applies to all steps). Since the endpoint isn’t sensitive, you could also store it as a repository variable and reference ${{ vars.AZURE_ENDPOINT }} instead of a secret.
-
-  Does this look right? : jobs:
-    run-parser:
-      runs-on: ubuntu-latest
-
-      steps:
+  jobs:
+  run-parser:
+    runs-on: ubuntu-latest
+    steps:
       # 🔄 Fresh clone (no cache)
       - name: Checkout repo (no cache)
         uses: actions/checkout@v4
@@ -146,43 +25,20 @@ on:
         run: |
           pip install -r requirements.txt
 
-          - name: Write service account JSON to file
-            run: |
-              printf '%s' "${{ secrets.SERVICE_ACCOUNT_JSON }}" > service_account.json
-  Thought for 31s
-  Not quite. Your “Write service account JSON” step is indented inside the previous step’s run block. It must be a separate step at the same level as the others.
+      - name: Write service account JSON to file
+        run: |
+          printf '%s' "${{ secrets.SERVICE_ACCOUNT_JSON }}" > service_account.json
 
-  jobs:
-    run-parser:
-      runs-on: ubuntu-latest
-      steps:
-        # 🔄 Fresh clone (no cache)
-        - name: Checkout repo (no cache)
-          uses: actions/checkout@v4
-          with:
-            clean: true
-            fetch-depth: 0
+      - name: Derive SERVICE_ACCOUNT_KEY_B64 from JSON secret
+        run: echo "SERVICE_ACCOUNT_KEY_B64=$(printf '%s' '${{ secrets.SERVICE_ACCOUNT_JSON }}' | base64 -w0)" >> $GITHUB_ENV
 
-        - name: Set up Python
-          uses: actions/setup-python@v4
-          with:
-            python-version: '3.11'
-
-        - name: Install dependencies
-          run: |
-            pip install -r requirements.txt
-
-        - name: Write service account JSON to file
-          run: |
-            printf '%s' "${{ secrets.SERVICE_ACCOUNT_JSON }}" > service_account.json
-
-        - name: Run receipt parser
-          env:
-            AZURE_KEY: ${{ secrets.AZURE_KEY }}
-            AZURE_ENDPOINT: ${{ secrets.AZURE_ENDPOINT }}   # will be read by your code if you switched to os.getenv
-            SERVICE_ACCOUNT_KEY_B64: ${{ secrets.SERVICE_ACCOUNT_KEY_B64 }}  # only if you use the base64 path
-          run: |
-            python main.py
+      - name: Run receipt parser
+        env:
+          AZURE_KEY: ${{ secrets.AZURE_KEY }}
+          AZURE_ENDPOINT: ${{ secrets.AZURE_ENDPOINT }}   # will be read by your code if you switched to os.getenv
+          SERVICE_ACCOUNT_KEY_B64: ${{ secrets.SERVICE_ACCOUNT_KEY_B64 }}  # only if you use the base64 path
+        run: |
+          python main.py
 
     - name: Commit & push results
       run: |
