@@ -24,13 +24,25 @@ creds_data = None
 print("🔐 Loading credentials from environment...")
 
 # For GitHub Actions, use the SERVICE_ACCOUNT_JSON secret
-if os.getenv("SERVICE_ACCOUNT_KEY"):
+
+creds_data = None  # Initialize to avoid Pyright warning
+
+try:
     creds_json = os.getenv("SERVICE_ACCOUNT_KEY")
     if creds_json:
+        print("🔐 Loaded credentials from environment variable.")
         creds_data = json.loads(creds_json)
     else:
+        print("📁 Loaded credentials from service_account.json file.")
         with open("service_account.json") as f:
             creds_data = json.load(f)
+except Exception as e:
+    print("❌ Failed to load credentials:", e)
+    exit(1)
+
+if not creds_data:
+    print("❌ Credentials data is empty or invalid.")
+    exit(1)
 
 creds = service_account.Credentials.from_service_account_info(creds_data,
                                                               scopes=SCOPES)
