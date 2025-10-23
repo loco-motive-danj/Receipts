@@ -22,23 +22,25 @@ creds_data = None
 
 # --- load token from Replit secret or local file ---
 
-print("🔐 Loading credentials from environment...")
-
-# For GitHub Actions, use the SERVICE_ACCOUNT_JSON secret
+print("🔐 Loading credentials...")
 
 creds_data = None
 encoded = os.getenv("SERVICE_ACCOUNT_KEY_B64")
-if not encoded:
-    print("❌ SERVICE_ACCOUNT_KEY_B64 is missing or empty!")
-    exit(1)
+if encoded:
+    try:
+        decoded = base64.b64decode(encoded).decode("utf-8")
+        creds_data = json.loads(decoded)
+    except Exception as e:
+        print("❌ Failed to decode SERVICE_ACCOUNT_KEY_B64:", e)
+        creds_data = None
 
-try:
-    decoded = base64.b64decode(encoded).decode("utf-8")
-    print("🔍 Decoded JSON preview:", decoded[:100])  # Add this line
-    creds_data = json.loads(decoded)
-except Exception as e:
-    print("❌ Failed to decode or parse credentials:", e)
-    exit(1)
+if creds_data is None:
+    try:
+        with open("service_account.json", "r", encoding="utf-8") as f:
+            creds_data = json.load(f)
+    except Exception as e:
+        print("❌ Could not load service account credentials from env or file:", e)
+        exit(1)
 
 creds = service_account.Credentials.from_service_account_info(creds_data,
                                                               scopes=SCOPES)
@@ -47,7 +49,7 @@ creds = service_account.Credentials.from_service_account_info(creds_data,
 with open("config.json") as f:
     cfg = json.load(f)
 
-AZURE_ENDPOINT = "https://receiptinvoiceaid.cognitiveservices.azure.com/"
+AZURE_ENDPOINT = (os.getenv("AZURE_ENDPOINT") or "https://receiptinvoiceaid.cognitiveservices.azure.com/").rstrip("/") + "/"
 AZURE_KEY = os.getenv("AZURE_KEY")
 MODEL = "prebuilt-receipt"
 FOLDER_ID = "1gBOXAU9b1zSt06c-1YPQcmPiu02zTdXZ"
@@ -60,15 +62,7 @@ SERVICE_ACCOUNT_FILE = "service_account.json"
 
 
 def get_service_account_drive():
-    try:
-        with open("service_account.json") as f:
-            creds_info = json.load(f)
-    except Exception:
-        raise Exception("❌ service_account.json file not found or unreadable!")
-
-    creds = service_account.Credentials.from_service_account_info(
-        creds_info, scopes=["https://www.googleapis.com/auth/drive"])
-
+    # Use the already-loaded credentials
     print("✅ Connected to Google Drive via Service Account")
     return build("drive", "v3", credentials=creds)
 
@@ -181,6 +175,9 @@ def upload_to_drive(local_path, folder_id):
 
 def merge_excels(output_dir="outputs"):
     all_files = glob.glob(os.path.join(output_dir, "*_parsed.xlsx"))
+    if not all_files:
+        print("ℹ️  No parsed files to merge; skipping.")
+        return
     dfs = [pd.read_excel(f) for f in all_files]
     merged = pd.concat(dfs, ignore_index=True)
     merged.to_excel(os.path.join(output_dir, "All_Receipts_Combined.xlsx"),
