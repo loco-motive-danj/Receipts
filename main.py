@@ -25,22 +25,13 @@ creds_data = None
 print("🔐 Loading credentials...")
 
 creds_data = None
+
 encoded = os.getenv("SERVICE_ACCOUNT_KEY_B64")
 if encoded:
-    try:
-        decoded = base64.b64decode(encoded).decode("utf-8")
-        creds_data = json.loads(decoded)
-    except Exception as e:
-        print("❌ Failed to decode SERVICE_ACCOUNT_KEY_B64:", e)
-        creds_data = None
-
-if creds_data is None:
-    try:
-        with open("service_account.json", "r", encoding="utf-8") as f:
-            creds_data = json.load(f)
-    except Exception as e:
-        print("❌ Could not load service account credentials from env or file:", e)
-        exit(1)
+    creds_data = json.loads(base64.b64decode(encoded).decode("utf-8"))
+else:
+    with open("service_account.json") as f:
+        creds_data = json.load(f)
 
 creds = service_account.Credentials.from_service_account_info(creds_data,
                                                               scopes=SCOPES)
@@ -49,7 +40,8 @@ creds = service_account.Credentials.from_service_account_info(creds_data,
 with open("config.json") as f:
     cfg = json.load(f)
 
-AZURE_ENDPOINT = (os.getenv("AZURE_ENDPOINT") or "https://receiptinvoiceaid.cognitiveservices.azure.com/").rstrip("/") + "/"
+AZURE_ENDPOINT = os.getenv(
+    "AZURE_ENDPOINT", "https://receiptinvoiceaid.cognitiveservices.azure.com/")
 AZURE_KEY = os.getenv("AZURE_KEY")
 MODEL = "prebuilt-receipt"
 FOLDER_ID = os.getenv("DRIVE_FOLDER_ID") or cfg.get("DRIVE_FOLDER_ID", "1gBOXAU9b1zSt06c-1YPQcmPiu02zTdXZ")

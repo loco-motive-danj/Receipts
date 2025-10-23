@@ -5,41 +5,43 @@ on:
     - cron: "0 * * * *"   # every hour
   workflow_dispatch:       # manual trigger
 
-jobs:
+  jobs:
   run-parser:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-
     steps:
-    # 🔄 Fresh clone (no cache)
-    - name: Checkout repo (no cache)
-      uses: actions/checkout@v4
-      with:
-        clean: true
-        fetch-depth: 0
+      # 🔄 Fresh clone (no cache)
+      - name: Checkout repo (no cache)
+        uses: actions/checkout@v4
+        with:
+          clean: true
+          fetch-depth: 0
 
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.11'
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
 
-    - name: Install dependencies
-      run: |
-        pip install -r requirements.txt
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
 
-    - name: Write service account JSON to file
-      run: |
-        printf '%s' "${{ secrets.SERVICE_ACCOUNT_JSON }}" > service_account.json
+      - name: Write service account JSON to file
+        run: |
+          printf '%s' "${{ secrets.SERVICE_ACCOUNT_JSON }}" > service_account.json
 
-    - name: Run receipt parser
-      env:
-        AZURE_KEY: ${{ secrets.AZURE_KEY }}
-        AZURE_ENDPOINT: ${{ secrets.AZURE_ENDPOINT }}
-        SERVICE_ACCOUNT_KEY_B64: ${{ secrets.SERVICE_ACCOUNT_KEY_B64 }}
-      run: |
-        echo "DEBUG: Running latest main.py"
-        python main.py
+      - name: Derive SERVICE_ACCOUNT_KEY_B64 from JSON
+        run: |
+          echo "${{ secrets.SERVICE_ACCOUNT_JSON }}" | base64 -w0 > tmp_b64.txt
+          echo "SERVICE_ACCOUNT_KEY_B64=$(cat tmp_b64.txt)" >> $GITHUB_ENV
+          rm tmp_b64.txt
+
+      - name: Run receipt parser
+        env:
+          AZURE_KEY: ${{ secrets.AZURE_KEY }}
+          AZURE_ENDPOINT: ${{ secrets.AZURE_ENDPOINT }}   # will be read by your code if you switched to os.getenv
+          SERVICE_ACCOUNT_KEY_B64: ${{ secrets.SERVICE_ACCOUNT_KEY_B64 }}  # only if you use the base64 path
+        run: |
+          python main.py
 
     - name: Commit & push results
       run: |
