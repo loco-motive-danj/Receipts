@@ -22,9 +22,7 @@ creds_data = None
 
 # --- load token from Replit secret or local file ---
 
-print("🔐 Loading credentials from environment...")
-
-# For GitHub Actions, use the SERVICE_ACCOUNT_JSON secret
+print("🔐 Loading credentials...")
 
 creds_data = None
 
@@ -46,7 +44,7 @@ AZURE_ENDPOINT = os.getenv(
     "AZURE_ENDPOINT", "https://receiptinvoiceaid.cognitiveservices.azure.com/")
 AZURE_KEY = os.getenv("AZURE_KEY")
 MODEL = "prebuilt-receipt"
-FOLDER_ID = "1gBOXAU9b1zSt06c-1YPQcmPiu02zTdXZ"
+FOLDER_ID = os.getenv("DRIVE_FOLDER_ID") or cfg.get("DRIVE_FOLDER_ID", "1gBOXAU9b1zSt06c-1YPQcmPiu02zTdXZ")
 
 # ---- Google Drive auth ----
 
@@ -56,15 +54,7 @@ SERVICE_ACCOUNT_FILE = "service_account.json"
 
 
 def get_service_account_drive():
-    try:
-        with open("service_account.json") as f:
-            creds_info = json.load(f)
-    except Exception:
-        raise Exception("❌ service_account.json file not found or unreadable!")
-
-    creds = service_account.Credentials.from_service_account_info(
-        creds_info, scopes=["https://www.googleapis.com/auth/drive"])
-
+    # Use the already-loaded credentials
     print("✅ Connected to Google Drive via Service Account")
     return build("drive", "v3", credentials=creds)
 
@@ -177,6 +167,9 @@ def upload_to_drive(local_path, folder_id):
 
 def merge_excels(output_dir="outputs"):
     all_files = glob.glob(os.path.join(output_dir, "*_parsed.xlsx"))
+    if not all_files:
+        print("ℹ️  No parsed files to merge; skipping.")
+        return
     dfs = [pd.read_excel(f) for f in all_files]
     merged = pd.concat(dfs, ignore_index=True)
     merged.to_excel(os.path.join(output_dir, "All_Receipts_Combined.xlsx"),
