@@ -52,7 +52,7 @@ with open("config.json") as f:
 AZURE_ENDPOINT = (os.getenv("AZURE_ENDPOINT") or "https://receiptinvoiceaid.cognitiveservices.azure.com/").rstrip("/") + "/"
 AZURE_KEY = os.getenv("AZURE_KEY")
 MODEL = "prebuilt-receipt"
-FOLDER_ID = "1gBOXAU9b1zSt06c-1YPQcmPiu02zTdXZ"
+FOLDER_ID = os.getenv("DRIVE_FOLDER_ID") or cfg.get("DRIVE_FOLDER_ID", "1gBOXAU9b1zSt06c-1YPQcmPiu02zTdXZ")
 
 # ---- Google Drive auth ----
 
