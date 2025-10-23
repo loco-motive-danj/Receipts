@@ -40,6 +40,7 @@ on:
           AZURE_KEY: ${{ secrets.AZURE_KEY }}
           AZURE_ENDPOINT: ${{ secrets.AZURE_ENDPOINT }}   # will be read by your code if you switched to os.getenv
           SERVICE_ACCOUNT_KEY_B64: ${{ secrets.SERVICE_ACCOUNT_KEY_B64 }}  # only if you use the base64 path
+          FOLDER_ID: ${{ secrets.FOLDER_ID }}
         run: |
           python main.py
 
