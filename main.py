@@ -44,7 +44,12 @@ AZURE_ENDPOINT = os.getenv(
     "AZURE_ENDPOINT", "https://receiptinvoiceaid.cognitiveservices.azure.com/")
 AZURE_KEY = os.getenv("AZURE_KEY")
 MODEL = "prebuilt-receipt"
-FOLDER_ID = os.getenv("DRIVE_FOLDER_ID") or cfg.get("DRIVE_FOLDER_ID", "1gBOXAU9b1zSt06c-1YPQcmPiu02zTdXZ")
+# Prefer FOLDER_ID secret; fall back to legacy env and config
+FOLDER_ID = (
+    os.getenv("FOLDER_ID")
+    or os.getenv("DRIVE_FOLDER_ID")
+    or cfg.get("DRIVE_FOLDER_ID", "1gBOXAU9b1zSt06c-1YPQcmPiu02zTdXZ")
+)
 
 # ---- Google Drive auth ----
 
