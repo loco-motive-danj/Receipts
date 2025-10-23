@@ -20,6 +20,9 @@ from googleapiclient.discovery import build
 SCOPES = ["https://www.googleapis.com/auth/drive"]
 creds_data = None
 
+app = Flask(__name__)
+
+
 # --- load token from Replit secret or local file ---
 
 print("🔐 Loading credentials...")
@@ -202,10 +205,6 @@ def main():
     # 🧩 Merge everything into one file at the end
     merge_excels()
 
-
-app = Flask(__name__)
-
-
 @app.route('/')
 def home():
     return """
@@ -233,10 +232,9 @@ def run_flask():
 
 
 if __name__ == "__main__":
-    if not os.getenv("GITHUB_ACTIONS"):
-        app.run(host="0.0.0.0", port=8080)
-    else:
+    if os.getenv("GITHUB_ACTIONS") == "true":
         print("✅ Skipping Flask server in GitHub Actions.")
         main()
         print("🏁 Parser finished successfully, exiting now.")
-        exit(0)
+    else:
+        run_flask()
